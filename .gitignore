@@ -2,3 +2,5 @@
 node_modules
 public/bundle.*
 firebase-debug.log
+.firebase/
+.firebaserc

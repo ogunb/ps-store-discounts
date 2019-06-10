@@ -1,8 +1,35 @@
 const functions = require('firebase-functions');
+const axios = require('axios');
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
+const psnEndpoint = 'https://store.playstation.com/valkyrie-api';
+const psnApi = axios.create({
+    baseURL: psnEndpoint,
+  });
+
+exports.searchGames = functions.https.onRequest((request, response) => {
+    const { query, size = 10, start = 0, location = 'tr/TR' } = request.query;
+
+    psnApi.get(`/${location}/19/faceted-search/${query}`, {
+        params: {
+            query,
+            start,
+            size,
+            game_content_type: 'games,bundles,addons',
+            bucket: 'games',
+            platform: 'ps4',
+        }
+    })
+    .then(({ data: { data, included } }) => {
+        const gamesData = data.relationships.children.data;
+        if (gamesData.length === 0) return response.sendStatus(404);
+
+        const gameIDs = gamesData.reduce((acc, game) => Object.assign(acc, { [game.id]: true }), {})
+        const games = included.filter(item => gameIDs[item.id]);
+
+        return response.send(games);
+    })
+    .catch(err => {
+        console.error(err);
+        return response.send(err);
+    });
+});
