@@ -1,6 +1,6 @@
 .DS_Store
 node_modules
-public/bundle.*
+dist/
 firebase-debug.log
 .firebase/
 .firebaserc

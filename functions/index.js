@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const axios = require('axios');
+const cors = require('cors')({origin: true});
 
 const psnEndpoint = 'https://store.playstation.com/valkyrie-api';
 const psnApi = axios.create({
@@ -7,6 +8,7 @@ const psnApi = axios.create({
   });
 
 exports.searchGames = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {});
     const { query, size = 10, start = 0, location = 'tr/TR' } = request.query;
 
     psnApi.get(`/${location}/19/faceted-search/${query}`, {
