@@ -1,37 +1,14 @@
 const functions = require('firebase-functions');
-const axios = require('axios');
-const cors = require('cors')({origin: true});
+const glob = require('glob');
 
-const psnEndpoint = 'https://store.playstation.com/valkyrie-api';
-const psnApi = axios.create({
-    baseURL: psnEndpoint,
-  });
+const files = glob.sync('./*/*.*.js', { cwd: __dirname, ignore: './node_modules/**'});
 
-exports.searchGames = functions.https.onRequest((request, response) => {
-    cors(request, response, () => {});
-    const { query, size = 10, start = 0, location = 'tr/TR' } = request.query;
-
-    psnApi.get(`/${location}/19/faceted-search/${query}`, {
-        params: {
-            query,
-            start,
-            size,
-            game_content_type: 'games,bundles,addons',
-            bucket: 'games',
-            platform: 'ps4',
-        }
-    })
-    .then(({ data: { data, included } }) => {
-        const gamesData = data.relationships.children.data;
-        if (gamesData.length === 0) return response.sendStatus(404);
-
-        const gameIDs = gamesData.reduce((acc, game) => Object.assign(acc, { [game.id]: true }), {})
-        const games = included.filter(item => gameIDs[item.id]);
-
-        return response.send(games);
-    })
-    .catch(err => {
-        console.error(err);
-        return response.send(err);
-    });
-});
+for(let i = 0; i < files.length; i++){
+    const filePath = files[i]
+    const filePathSplit = files[i].split('/');
+    const functionTrigger = filePathSplit[1];
+    const [ functionName, triggerType ] = filePathSplit[filePathSplit.length - 1].split('.');
+    if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === functionName) {
+        exports[functionName] = functions[functionTrigger][triggerType](require(filePath));
+    }
+}
